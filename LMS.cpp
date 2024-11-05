@@ -2,7 +2,10 @@
 #include <vector>
 #include <string>
 #include <ctime>
+#include <limits>
+
 using namespace std;
+
 class Book 
 {
 public:
@@ -38,40 +41,40 @@ public:
     }
 
     bool isAvailable() const
-     {
+    {
         return available;
     }
 
     void markAsBorrowed()
-     {
+    {
         available = false;
     }
 
     void markAsReturned()
-     {
+    {
         available = true;
     }
 };
 
 class User
- {
+{
 public:
-    string userID;
+    int userID;
     string name;
-    string contactInfo;
+    int contactInfo;
 
-    User(string id, string n, string contact)
+    User(int id, string n, int contact)
         : userID(id), name(n), contactInfo(contact) {}
 
     void displayInfo()
-     {
+    {
         cout << "User ID: " << userID << "\n"
              << "Name: " << name << "\n"
              << "Contact Info: " << contactInfo << "\n";
     }
 
-    string getUserID() const
-     {
+    int getUserID() const
+    {
         return userID;
     }
 };
@@ -83,21 +86,21 @@ public:
     time_t dueDate;
     time_t returnDate;
 
-    Loan(string t, string a, string isbn, string id, string n, string contact)
-        : Book(t, a, isbn), User(id, n, contact) 
-        {
+    Loan(string t, string a, string isbn, int id, string n, int contact)
+        : Book(t, a, isbn), User(id, n, contact)
+    {
         loanDate = time(nullptr);
         dueDate = loanDate + (14 * 24 * 60 * 60); // 2 weeks due date
         returnDate = 0;
     }
 
-    void markAsReturned() 
+    void markAsReturned()
     {
         returnDate = time(nullptr);
         Book::markAsReturned();
     }
 
-    void displayLoanInfo() 
+    void displayLoanInfo()
     {
         User::displayInfo();
         Book::displayInfo();
@@ -106,56 +109,56 @@ public:
              << "Return Date: " << (returnDate ? ctime(&returnDate) : "Not Returned Yet") << "\n";
     }
 
-    bool isLoanForUser(string userID)
-     {
+    bool isLoanForUser(int userID)
+    {
         return this->userID == userID;
     }
 
-    string getBookISBN() 
+    string getBookISBN()
     {
         return this->ISBN;
     }
 };
 
 class Library
- {
+{
 public:
     vector<Book*> books;
     vector<User*> users;
     vector<Loan*> loans;
 
     void addBook(Book* book)
-     {
+    {
         books.push_back(book);
     }
 
-    void addUser(User* user) 
+    void addUser(User* user)
     {
         users.push_back(user);
     }
 
-    void loanBook(string isbn, string userID)
-     {
+    void loanBook(string isbn, int userID)
+    {
         Book* book = findBook(isbn);
         User* user = findUser(userID);
         if (book && user && book->isAvailable())
-         {
-            Loan* loan = new Loan(book->getTitle(), book->getAuthor(), isbn, userID, user->getUserID(), user->getUserID());
+        {
+            Loan* loan = new Loan(book->getTitle(), book->getAuthor(), isbn, userID, user->name, user->contactInfo);
             loans.push_back(loan);
             book->markAsBorrowed();
             cout << "Book loaned successfully.\n";
-        } 
-        else 
+        }
+        else
         {
             cout << "Loan failed: Book is either not available or user not found.\n";
         }
     }
 
-    void returnBook(string isbn, string userID) 
+    void returnBook(string isbn, int userID)
     {
-        for (Loan* loan : loans) 
+        for (Loan* loan : loans)
         {
-            if (loan->getBookISBN() == isbn && loan->isLoanForUser(userID)) 
+            if (loan->getBookISBN() == isbn && loan->isLoanForUser(userID))
             {
                 loan->markAsReturned();
                 cout << "Book returned successfully.\n";
@@ -165,18 +168,18 @@ public:
         cout << "Return failed: No matching loan record found.\n";
     }
 
-    void displayBooks() 
+    void displayBooks()
     {
-        for (auto book : books) 
+        for (auto book : books)
         {
             book->displayInfo();
             cout << "-------------------------\n";
         }
     }
 
-    void displayUsers() 
+    void displayUsers()
     {
-        for (auto user : users) 
+        for (auto user : users)
         {
             user->displayInfo();
             cout << "-------------------------\n";
@@ -184,32 +187,62 @@ public:
     }
 
     void displayLoans()
-     {
+    {
         for (auto loan : loans)
-         {
+        {
             loan->displayLoanInfo();
             cout << "-------------------------\n";
         }
     }
 
-private:
-    Book* findBook(const string& isbn) 
+    void deleteBook(string isbn)
     {
-        for (auto book : books) 
+        for (auto it = books.begin(); it != books.end(); ++it)
+        {
+            if ((*it)->getISBN() == isbn)
+            {
+                delete *it;
+                books.erase(it);
+                cout << "Book deleted successfully.\n";
+                return;
+            }
+        }
+        cout << "Delete failed: Book not found.\n";
+    }
+
+    void deleteUser(int userID)
+    {
+        for (auto it = users.begin(); it != users.end(); ++it)
+        {
+            if ((*it)->getUserID() == userID)
+            {
+                delete *it;
+                users.erase(it);
+                cout << "User deleted successfully.\n";
+                return;
+            }
+        }
+        cout << "Delete failed: User not found.\n";
+    }
+
+private:
+    Book* findBook(const string& isbn)
+    {
+        for (auto book : books)
         {
             if (book->getISBN() == isbn)
-             {
+            {
                 return book;
             }
         }
         return nullptr;
     }
 
-    User* findUser(const string& userID) 
+    User* findUser(int userID)
     {
-        for (auto user : users) 
+        for (auto user : users)
         {
-            if (user->getUserID() == userID) 
+            if (user->getUserID() == userID)
             {
                 return user;
             }
@@ -218,13 +251,14 @@ private:
     }
 };
 
-int main() 
+int main()
 {
     Library library;
     int choice;
 
-    do {
-        cout << "Library Management System Menu:\n";
+    while (true)
+    {
+        cout << "\nLibrary Management System Menu:\n";
         cout << "1. Add Book\n";
         cout << "2. Add User\n";
         cout << "3. Loan Book\n";
@@ -232,14 +266,26 @@ int main()
         cout << "5. Display Books\n";
         cout << "6. Display Users\n";
         cout << "7. Display Loans\n";
+        cout << "8. Delete Book\n";
+        cout << "9. Delete User\n";
         cout << "0. Exit\n";
         cout << "Enter your choice: ";
         cin >> choice;
 
+        if (cin.fail())
+        {
+            cin.clear(); // clear the error flag
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // discard invalid input
+            cout << "Invalid input. Please enter a number.\n";
+            continue; // go back to displaying the menu
+        }
+
+        bool validChoice = true;
+
         switch (choice)
-         {
+        {
             case 1:
-             {
+            {
                 string title, author, isbn;
                 cout << "Enter title: ";
                 cin.ignore();
@@ -252,23 +298,25 @@ int main()
                 cout << "Book added successfully!\n";
                 break;
             }
-            case 2: 
+            case 2:
             {
-                string id, name, contact;
+                int id, contact;
+                string name;
                 cout << "Enter User ID: ";
                 cin >> id;
                 cout << "Enter Name: ";
                 cin.ignore();
                 getline(cin, name);
                 cout << "Enter Contact Info: ";
-                getline(cin, contact);
+                cin >> contact;
                 library.addUser(new User(id, name, contact));
                 cout << "User added successfully!\n";
                 break;
             }
-            case 3: 
+            case 3:
             {
-                string isbn, userID;
+                string isbn;
+                int userID;
                 cout << "Enter ISBN of the book: ";
                 cin >> isbn;
                 cout << "Enter User ID: ";
@@ -276,8 +324,10 @@ int main()
                 library.loanBook(isbn, userID);
                 break;
             }
-            case 4: {
-                string isbn, userID;
+            case 4:
+            {
+                string isbn;
+                int userID;
                 cout << "Enter ISBN of the book: ";
                 cin >> isbn;
                 cout << "Enter User ID: ";
@@ -285,34 +335,55 @@ int main()
                 library.returnBook(isbn, userID);
                 break;
             }
-            case 5: 
+            case 5:
             {
                 cout << "Books in Library:\n";
                 library.displayBooks();
                 break;
             }
-            case 6: 
+            case 6:
             {
                 cout << "Registered Users:\n";
                 library.displayUsers();
                 break;
             }
-            case 7: 
+            case 7:
             {
                 cout << "Current Loans:\n";
                 library.displayLoans();
                 break;
             }
+            case 8:
+            {
+                string isbn;
+                cout << "Enter ISBN of the book to delete: ";
+                cin >> isbn;
+                library.deleteBook(isbn);
+                break;
+            }
+            case 9:
+            {
+                int userID;
+                cout << "Enter User ID to delete: ";
+                cin >> userID;
+                library.deleteUser(userID);
+                break;
+            }
             case 0:
                 cout << "Exiting...\n";
-                break;
+                return 0;
             default:
-                cout << "Invalid choice! Please try again.\n";
+                cout << "Invalid choice. Please try again.\n";
+                validChoice = false;
+                break;
         }
 
-        cout << endl;
-
-    } while (choice != 0);
+        if (!validChoice)
+        {
+            continue; // re-display the menu if the choice was invalid
+        }
+    }
 
     return 0;
 }
+
